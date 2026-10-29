@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="A private book reader for EPUB, MOBI, PRC, AZW, AZW3, CBZ, and CBR. Files stay in this browser.">
+  <title>Reader</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23221e1a'/%3E%3Cpath d='M8 8.5h7.2c1.2 0 2.3.8 2.8 1.8.5-1 1.6-1.8 2.8-1.8H26v15h-5.2c-1.2 0-2.3.6-2.8 1.5-.5-.9-1.6-1.5-2.8-1.5H8V8.5z' fill='%23f4efe6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/reader.css">
+  <script>
+    try {
+      var saved = JSON.parse(localStorage.getItem('web-reader:v1') || '{}');
+      var theme = saved.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+    } catch (e) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  </script>
+</head>
+<body>
+  <div id="library-view" class="library">
+    <header class="library-head">
+      <p class="kicker">In this browser</p>
+      <h1>Reader</h1>
+      <p class="lede">Open EPUB, MOBI, PRC, AZW, AZW3, CBZ, or CBR. Books stay on this device and reopen where you left them.</p>
+    </header>
+
+    <label class="drop" id="dropzone">
+      <input id="file-input" type="file" accept=".epub,.mobi,.prc,.azw,.azw3,.cbz,.cbr,application/epub+zip,application/x-mobipocket-ebook,application/vnd.amazon.ebook,application/vnd.comicbook+zip,application/vnd.comicbook-rar" multiple hidden>
+      <span class="drop-title">Drop a book here</span>
+      <span class="drop-hint">or <span class="browse">browse</span></span>
+    </label>
+
+    <p id="banner" class="banner" role="alert" hidden></p>
+
+    <section class="samples" aria-label="Sample books">
+      <h2>Try a sample</h2>
+      <p>The Lantern Room</p>
+      <div class="sample-row" id="sample-text"></div>
+      <p>Paper Boats</p>
+      <div class="sample-row" id="sample-comic"></div>
+      <p>Pocket Note</p>
+      <div class="sample-row" id="sample-note"></div>
+    </section>
+
+    <section class="shelf" aria-live="polite">
+      <div class="shelf-head">
+        <h2>Library</h2>
+        <button type="button" class="text-btn" id="library-theme">Theme</button>
+      </div>
+      <div id="library-grid" class="grid"></div>
+      <p id="library-empty" class="empty">Nothing saved yet.</p>
+    </section>
+  </div>
+
+  <div id="reader-view" class="reader" hidden>
+    <header class="chrome">
+      <div class="chrome-row">
+        <button type="button" class="icon-btn" id="btn-back" aria-label="Back to library">←</button>
+        <div class="title-wrap">
+          <p id="book-format" class="format"></p>
+          <h1 id="book-title"></h1>
+        </div>
+      </div>
+      <div class="tools">
+        <button type="button" class="icon-btn" id="btn-font-dec" aria-label="Smaller text">A−</button>
+        <button type="button" class="icon-btn" id="btn-font-inc" aria-label="Larger text">A+</button>
+        <button type="button" class="icon-btn" id="btn-theme" aria-label="Toggle theme">Theme</button>
+        <button type="button" class="icon-btn" id="btn-spread" aria-label="Toggle page layout">Auto</button>
+        <button type="button" class="icon-btn" id="btn-bookmark" aria-label="Toggle bookmark" aria-pressed="false">Mark</button>
+        <button type="button" class="icon-btn" id="btn-panel" aria-label="Chapters, search, and bookmarks" aria-expanded="false">Contents</button>
+      </div>
+    </header>
+
+    <div class="frame">
+      <div id="stage" class="stage"></div>
+      <div id="ribbon" class="ribbon" hidden></div>
+      <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+    </div>
+
+    <footer class="footer">
+      <p id="page-label">1 / 1</p>
+    </footer>
+
+    <div id="panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden>
+      <div class="panel-bar">
+        <h2 id="panel-title">Book</h2>
+        <button type="button" class="icon-btn" id="panel-close" aria-label="Close panel">Close</button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab" id="tab-contents" role="tab" aria-selected="true" aria-controls="pane-contents">Chapters</button>
+        <button type="button" class="tab" id="tab-search" role="tab" aria-selected="false" aria-controls="pane-search">Search</button>
+        <button type="button" class="tab" id="tab-bookmarks" role="tab" aria-selected="false" aria-controls="pane-bookmarks">Bookmarks</button>
+      </div>
+      <div class="panel-body">
+        <div id="pane-contents" role="tabpanel"></div>
+        <div id="pane-search" role="tabpanel" hidden>
+          <form id="search-form">
+            <input id="search-input" type="search" placeholder="Search this book" autocomplete="off" enterkeyhint="search">
+          </form>
+          <div id="search-results"></div>
+        </div>
+        <div id="pane-bookmarks" role="tabpanel" hidden></div>
+      </div>
+      <p class="help">Left and right arrows turn pages. Down marks the page. Up opens this panel.</p>
+    </div>
+  </div>
+
+  <div id="status" class="status" hidden>
+    <p id="status-text">Opening…</p>
+  </div>
+  <div id="toast" class="toast" hidden role="status"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
